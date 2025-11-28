@@ -22,3 +22,6 @@
 [submodule "asic/thunderbird_taillight_1965"]
 	path = asic/thunderbird_taillight_1965
 	url = https://github.com/splinedrive/thunderbird_taillight_1965
+[submodule "asic/gf180mcu-kianv-rv32ima-sv32"]
+	path = asic/gf180mcu-kianv-rv32ima-sv32
+	url = https://github.com/splinedrive/gf180mcu-kianv-rv32ima-sv32

@@ -25,3 +25,6 @@
 [submodule "asic/gf180mcu-kianv-rv32ima-sv32"]
 	path = asic/gf180mcu-kianv-rv32ima-sv32
 	url = https://github.com/splinedrive/gf180mcu-kianv-rv32ima-sv32
+[submodule "linux_socs/LinuxSoC_v2/engineering/kianv-rv32-linuxcore"]
+	path = linux_socs/LinuxSoC_v2/engineering/kianv-rv32-linuxcore
+	url = https://github.com/splinedrive/kianv-rv32-linuxcore

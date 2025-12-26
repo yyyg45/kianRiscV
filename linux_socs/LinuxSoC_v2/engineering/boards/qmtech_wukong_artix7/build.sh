@@ -1,0 +1,2 @@
+make clean && make OPT_STRATEGY=PERFROMANCE SYSTEM_FREQUENCY=$1 && openFPGALoader -r --freq=20e6 -c ft2232 -f -B /home/hd/hacking/eda-tools/openFPGALoader/build/spiOverJtag_xc7a100tfgg484.bit.gz --fpga-part=xc7a100 soc_fpga_top.bit
+#make clean && make SYSTEM_FREQUENCY=$1 && openFPGALoader -r --freq=20e6 -c ft2232 -f -B /home/hd/hacking/eda-tools/openFPGALoader/build/spiOverJtag_xc7a100tfgg484.bit.gz --fpga-part=xc7a100 soc_fpga_top.bit

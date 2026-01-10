@@ -18,7 +18,16 @@ Find my new full-custom RISC-V Linux KianV ASIC SoC as part of the [wafer.space]
 [KianV GF180MCU](https://github.com/splinedrive/gf180mcu-kianv-rv32ima-sv32)
 <img src="chip_top_white.png" alt="KianV SoC GF180MCU ASIC" />
 
-Check out the nice RISC-V uLinux ASIC I built—see the article at 
+### External Recognition
+
+At the Linux Plumbers Conference 2025 (Tokyo), D. Jeff Dionne highlighted the recent emergence of fully open-source silicon platforms that return from fabrication and boot mainline noMMU Linux, calling this capability “incredibly powerful”.
+
+KianV demonstrates this end-to-end workflow in practice: open-source RTL, open-source EDA and PDK (skywater130), TinyTapeout fabrication, and mainline uLinux boot on real silicon.
+
+Reference: Linux Plumbers Conference 2025 – noMMU Linux BoF
+https://www.youtube.com/watch?v=_MrT5KTQfvg
+
+Check out the nice RISC-V uLinux ASIC I built—see the article at
 [FOSSI Foundation](https://fossi-foundation.org/blog/2025-01-14-ecl82).
 <img src="ulinux_asic_tt05.jpg" alt="Kianv uLinux ASIC Soc TT05" />
 

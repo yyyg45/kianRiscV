@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2026 Hirosh Dabui <hirosh@dabui.de>
+
+if SOC_KIANV_RV32IMA
+
+config SYS_CLOCK_HW_CYCLES_PER_SEC
+	default 30000000
+
+config RISCV_SOC_INTERRUPT_INIT
+	default n
+
+config NUM_IRQS
+	default 16
+
+config PMP_SLOTS
+	default 16
+
+endif # SOC_KIANV_RV32IMA

@@ -1,0 +1,281 @@
+diff --git a/ports/kianv_riscv/Makefile b/ports/kianv_riscv/Makefile
+index 3e88eabe0..006f160ef 100644
+--- a/ports/kianv_riscv/Makefile
++++ b/ports/kianv_riscv/Makefile
+@@ -25,7 +25,7 @@ PYDFU = $(TOP)/tools/pydfu.py
+ #CFLAGS_CORTEX_M4 = -mthumb -mtune=cortex-m4 -mcpu=cortex-m4 -msoft-float -fsingle-precision-constant -Wdouble-promotion -Wfloat-conversion
+ #CFLAGS += $(INC) -Wall -Werror -std=c99 -nostdlib $(CFLAGS_CORTEX_M4) $(COPT)
+ LD = $(CC)
+-ARCH = rv32i
++ARCH = rv32ima
+ CFLAGS = $(INC) -Wall -Werror -std=c99 -march=$(ARCH) -mabi=ilp32 -flto -fomit-frame-pointer $(COPT)
+ LDFLAGS = -march=$(ARCH) -mabi=ilp32 -flto -ffreestanding -nostartfiles --specs=nano.specs -lm -lgcc -Wl,-Bstatic,-T,riscv.ld
+ else
+@@ -40,7 +40,7 @@ CSUPEROPT = -Os # save some code space
+ # Flags for optional C++ source code
+ CXXFLAGS += $(filter-out -std=c99,$(CFLAGS))
+ 
+-LIBS = /opt/riscv32i/riscv32-unknown-elf/lib/libm.a
++LIBS = $(shell $(CC) -print-file-name=libm.a)
+ 
+ SRC_C = \
+ 	main.c \
+@@ -81,7 +81,7 @@ $(BUILD)/firmware.elf: $(OBJ)
+ 	$(Q)$(SIZE) $@
+ 
+ $(BUILD)/firmware.bin: $(BUILD)/firmware.elf
+-	$(Q)$(OBJCOPY) -O binary $^ $(BUILD)/firmware.bin
++	$(Q)$(OBJCOPY) -O binary -j .init -j .text -j .data $^ $(BUILD)/firmware.bin
+ 	#$(Q)$(OBJCOPY) -O binary -j .isr_vector -j .text -j .data $^ $(BUILD)/firmware.bin
+ 
+ $(BUILD)/firmware.dfu: $(BUILD)/firmware.bin
+diff --git a/ports/kianv_riscv/main.c b/ports/kianv_riscv/main.c
+index fb450e92e..c3e05cf40 100644
+--- a/ports/kianv_riscv/main.c
++++ b/ports/kianv_riscv/main.c
+@@ -29,7 +29,8 @@ void do_str(const char *src, mp_parse_input_kind_t input_kind) {
+ 
+ static char *stack_top;
+ #if MICROPY_ENABLE_GC
+-static char heap[1024*512];
++static char *heap_begin = (void *)(0x080000000 + 1024 * 1024);
++static char *heap_end = (void *)(0x080000000 + 1024 * 1024 * 7);
+ #endif
+ void mp_hal_stdout_tx_strn(const char *str, mp_uint_t len);
+ 
+@@ -38,7 +39,7 @@ int main(int argc, char **argv) {
+     stack_top = (char *)&stack_dummy;
+ 
+     #if MICROPY_ENABLE_GC
+-    gc_init(heap, heap + sizeof(heap));
++    gc_init(heap_begin, heap_end);
+     #endif
+     mp_init();
+ 
+diff --git a/ports/kianv_riscv/mpconfigport.h b/ports/kianv_riscv/mpconfigport.h
+index b020942db..bbdc3e483 100644
+--- a/ports/kianv_riscv/mpconfigport.h
++++ b/ports/kianv_riscv/mpconfigport.h
+@@ -83,8 +83,8 @@ typedef long mp_off_t;
+ // We need to provide a declaration/definition of alloca()
+ #include <alloca.h>
+ 
+-#define MICROPY_HW_BOARD_NAME "rv32i soc"
+-#define MICROPY_HW_MCU_NAME "Kian-V"
++#define MICROPY_HW_BOARD_NAME "RV32IMA uLinux SoC TT05"
++#define MICROPY_HW_MCU_NAME "KianV"
+ 
+ #ifdef __linux__
+ #define MICROPY_MIN_USE_STDOUT (1)
+diff --git a/ports/kianv_riscv/riscv.ld b/ports/kianv_riscv/riscv.ld
+index f1b0a8e3c..c843e51f3 100644
+--- a/ports/kianv_riscv/riscv.ld
++++ b/ports/kianv_riscv/riscv.ld
+@@ -1,17 +1,56 @@
+ MEMORY
+ {
+-  ram      (rwx) : ORIGIN = 0x00000000, LENGTH = (1024*1024*3)
++  FLASH (rx)  : ORIGIN = 0x020300000, LENGTH = 0x10000000
++  PSRAM (rwx) : ORIGIN = 0x080000000, LENGTH = 0x00800000
+ }
+-__stacktop = ORIGIN(ram) + LENGTH(ram);
+ 
+-SECTIONS {
+-	.memory : {
+-		. = 0x000000;
+-		*(.init);
+-		*(.text);
+-		*(*);
+-		. = ALIGN(4);
+-		end = .;
+-	} >ram
++__stacktop = ORIGIN(PSRAM) + LENGTH(PSRAM);
++
++ENTRY(_start)
++
++SECTIONS
++{
++    .init : {
++        . = ALIGN(4);
++        build/start.o(.text*)
++    } >FLASH
++
++    .text : {
++        . = ALIGN(4);
++        _etext = .;
++        _sidata = _etext;
++    } >FLASH
++
++    .data : AT (_sidata) {
++        . = ALIGN(4);
++        _sdata = .;
++        _ram_start = .;
++        *(.text)
++        *(.text*)
++        . = ALIGN(4);
++        *(.data)
++        *(.data*)
++        *(.sdata)
++        *(.sdata*)
++        . = ALIGN(4);
++        *(.rodata)
++        *(.rodata*)
++        *(.srodata)
++        *(.srodata*)
++        . = ALIGN(4);
++        _edata = .;
++    } >PSRAM
++
++    .bss : {
++        . = ALIGN(4);
++        _sbss = .;
++        *(.bss)
++        *(.bss*)
++        *(.sbss)
++        *(.sbss*)
++        *(COMMON)
++        . = ALIGN(4);
++        _ebss = .;
++    } >PSRAM
++
++    .heap : {
++        . = ALIGN(4);
++        _heap_start = .;
++    } >PSRAM
+ }
+-
+diff --git a/ports/kianv_riscv/start.S b/ports/kianv_riscv/start.S
+index 0b1c91e7c..8ea42410e 100644
+--- a/ports/kianv_riscv/start.S
++++ b/ports/kianv_riscv/start.S
+@@ -1,13 +1,62 @@
+-.section .init
+-.global main
++#define IO_BASE 0x10000000
++#define REG_DIV (IO_BASE + 0x0010)
++.equ FREQ, 30000000
++.equ BAUDRATE, 115200
+ 
+-lui sp, %hi(__stacktop);
+-addi sp, sp, %lo(__stacktop);
++.text
++.global _start
++.type _start, @function
+ 
+-	/* call main */
+-	call main
+-  ebreak;
+-loop:
+-        j loop
+-.balign 4
++_start:
++    addi x1, zero, 0
++    addi x2, zero, 0
++    addi x3, zero, 0
++    addi x4, zero, 0
++    addi x5, zero, 0
++    addi x6, zero, 0
++    addi x7, zero, 0
++    addi x8, zero, 0
++    addi x9, zero, 0
++    addi x10, zero, 0
++    addi x11, zero, 0
++    addi x12, zero, 0
++    addi x13, zero, 0
++    addi x14, zero, 0
++    addi x15, zero, 0
+ 
++    la t0, REG_DIV
++    li t1, ((FREQ / 10000) << 16) | (FREQ / BAUDRATE)
++    sw t1, 0(t0)
++
++    lui sp, %hi(__stacktop)
++    addi sp, sp, %lo(__stacktop)
++
++    la a0, _sbss
++    la a1, _ebss
++    bge a0, a1, end_init_bss
++loop_init_bss:
++    addi a0, a0, 4
++    sw zero, -4(a0)
++    blt a0, a1, loop_init_bss
++end_init_bss:
++
++    la a0, _sidata
++    la a1, _sdata
++    la a2, _edata
++    bge a1, a2, end_init_data
++loop_init_data:
++    lw a3, 0(a0)
++    addi a0, a0, 4
++    addi a1, a1, 4
++    sw a3, -4(a1)
++    blt a1, a2, loop_init_data
++end_init_data:
++
++    call main
++
++halt:
++    j halt
+diff --git a/ports/kianv_riscv/uart_core.c b/ports/kianv_riscv/uart_core.c
+index a772f2823..277c2d65f 100644
+--- a/ports/kianv_riscv/uart_core.c
++++ b/ports/kianv_riscv/uart_core.c
+@@ -1,41 +1,30 @@
+ #include <unistd.h>
++#include <stdint.h>
+ #include "py/mpconfig.h"
+ 
+-/*
+- * Core UART functions to implement for a port
+- */
+-
+-#define UART_BASE       0x30000000
+-#define UART_TX            ( volatile uint32_t  *) (UART_BASE + 0x0000)
+-#define UART_READY         ( volatile uint32_t  *) (UART_BASE + 0x0000)
+-#define UART_RX            ( volatile uint32_t  *) (UART_BASE + 0x003C)
++#define UART_BASE 0x10000000
++#define UART_TX ((volatile uint32_t *)(UART_BASE + 0x0000))
++#define UART_RX ((volatile uint8_t *)(UART_BASE + 0x0000))
++#define UART_LSR ((volatile uint8_t *)(UART_BASE + 0x0005))
++#define UART_LSR_DR 0x01
++#define UART_LSR_THRE 0x20
+ 
+ int mp_hal_stdin_rx_chr(void) {
+-    int32_t c = -1;
+-#if MICROPY_MIN_USE_STDOUT
+-    int r = read(0, &c, 1);
+-    (void)r;
+-#else
+-     while (c == -1) {
+-       c = *((volatile uint32_t*) UART_RX);
+-     }
+-#endif
+-    return (char) ((c == 10 ? 13 : c));
++    while ((*UART_LSR & UART_LSR_DR) == 0) {
++    }
++
++    return (int)*UART_RX;
+ }
+ 
+ void kianv_putchar(char c) {
+-  while (!*((volatile uint32_t*) UART_READY))
+-    ;
+-  *((volatile uint32_t*) UART_TX) = c;
++    while ((*UART_LSR & UART_LSR_THRE) == 0) {
++    }
++
++    *UART_TX = (uint32_t)(uint8_t)c;
+ }
+ 
+ void mp_hal_stdout_tx_strn(const char *str, mp_uint_t len) {
+-#if MICROPY_MIN_USE_STDOUT
+-    int r = write(1, str, len);
+-    (void)r;
+-#else
+     while (len--) {
+-	    kianv_putchar(*str++);
++        kianv_putchar(*str++);
+     }
+-#endif
+ }

@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2026 Hirosh Dabui <hirosh@dabui.de>
+
+board:
+  name: kianv_asic
+  full_name: KianV RV32IMA ASIC SoC
+  vendor: others
+  socs:
+    - name: kianv_rv32ima

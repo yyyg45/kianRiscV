@@ -1,0 +1,8 @@
+.cache/
+.git/
+.venv/
+build/
+build-*/
+micropython/
+toolchain/
+zephyrproject/

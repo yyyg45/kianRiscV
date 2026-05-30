@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2026 Hirosh Dabui <hirosh@dabui.de>
+
+config SOC_KIANV_RV32IMA
+	bool
+
+config SOC
+	default "kianv_rv32ima" if SOC_KIANV_RV32IMA

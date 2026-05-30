@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2026 Hirosh Dabui <hirosh@dabui.de>
+
+identifier: kianv_asic
+name: KianV RV32IMA ASIC SoC
+type: mcu
+arch: riscv
+toolchain:
+  - zephyr
+ram: 8192
+supported:
+  - serial
+  - uart
